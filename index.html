@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Discussion Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #discussion-container {
+            margin-bottom: 20px;
+        }
+
+        .comment {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .comment-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 5px;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+
+        .like {
+            color: green;
+        }
+
+        .dislike {
+            color: red;
+        }
+    </style>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkC2GMZubnvfh3bCvcmsIHHivmnMrVfWU",
+            authDomain: "gmcdatabase-a5ccf.firebaseapp.com",
+            projectId: "gmcdatabase-a5ccf",
+            storageBucket: "gmcdatabase-a5ccf.appspot.com",
+            messagingSenderId: "26923536050",
+            appId: "1:26923536050:web:c9b63df0a2a548b4ec83ab",
+            measurementId: "G-BKLSES1EGM"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script>
+</head>
+<body>
+    <h1>Anonymous Discussion Page</h1>
+
+    <div id="discussion-container">
+        <!-- Discussion comments will be displayed here -->
+    </div>
+
+    <textarea id="comment-input" placeholder="Write your comment"></textarea>
+    <button onclick="postComment()">Post Comment</button>
+
+    <script type="module">
+        const database = app.database();
+        const discussionContainer = document.getElementById('discussion-container');
+        const commentInput = document.getElementById('comment-input');
+
+        function postComment() {
+            const commentText = commentInput.value;
+
+            if (commentText.trim() !== '') {
+                database.ref('comments').push({
+                    text: commentText,
+                    likes: 0,
+                    dislikes: 0
+                });
+
+                commentInput.value = '';
+            }
+        }
+
+        function displayComments() {
+            database.ref('comments').on('value', (snapshot) => {
+                discussionContainer.innerHTML = '';
+
+                snapshot.forEach((childSnapshot) => {
+                    const commentData = childSnapshot.val();
+                    const commentElement = document.createElement('div');
+                    commentElement.classList.add('comment');
+
+                    const commentText = document.createElement('p');
+                    commentText.textContent = commentData.text;
+
+                    const buttonsDiv = document.createElement('div');
+                    buttonsDiv.classList.add('comment-buttons');
+
+                    const likeButton = createButton('Like', () => handleLike(childSnapshot.key));
+                    const dislikeButton = createButton('Dislike', () => handleDislike(childSnapshot.key));
+                    const deleteButton = createButton('Delete', () => handleDelete(childSnapshot.key));
+
+                    buttonsDiv.appendChild(likeButton);
+                    buttonsDiv.appendChild(dislikeButton);
+                    buttonsDiv.appendChild(deleteButton);
+
+                    commentElement.appendChild(commentText);
+                    commentElement.appendChild(buttonsDiv);
+
+                    discussionContainer.appendChild(commentElement);
+                });
+            });
+        }
+
+        function createButton(label, onClick) {
+            const button = document.createElement('button');
+            button.textContent = label;
+            button.onclick = onClick;
+            return button;
+        }
+
+        function handleLike(commentKey) {
+            database.ref(`comments/${commentKey}/likes`).transaction((likes) => likes + 1);
+        }
+
+        function handleDislike(commentKey) {
+            database.ref(`comments/${commentKey}/dislikes`).transaction((dislikes) => dislikes + 1);
+        }
+
+        function handleDelete(commentKey) {
+            database.ref(`comments/${commentKey}`).remove();
+        }
+
+        displayComments();
+    </script>
+</body>
+</html>
