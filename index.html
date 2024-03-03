@@ -1,147 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anonymous Discussion Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Photography Gallery</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Arial', sans-serif;
+    }
 
-        #discussion-container {
-            margin-bottom: 20px;
-        }
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      padding: 10px;
+    }
 
-        .comment {
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
+    .thumbnail {
+      width: 100%;
+      cursor: pointer;
+      transition: transform 0.3s ease-in-out;
+    }
 
-        .comment-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-        }
+    .thumbnail:hover {
+      transform: scale(1.1);
+    }
 
-        button {
-            padding: 5px;
-            margin-right: 5px;
-            cursor: pointer;
-        }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
 
-        .like {
-            color: green;
-        }
+    #fullImage {
+      max-width: 80%;
+      max-height: 80%;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
 
-        .dislike {
-            color: red;
-        }
-    </style>
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+    #downloadButton {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #fff;
+      padding: 10px 20px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+      text-decoration: none;
+      color: #333;
+      border-radius: 5px;
+    }
 
-        // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-        const firebaseConfig = {
-            apiKey: "AIzaSyCkC2GMZubnvfh3bCvcmsIHHivmnMrVfWU",
-            authDomain: "gmcdatabase-a5ccf.firebaseapp.com",
-            projectId: "gmcdatabase-a5ccf",
-            storageBucket: "gmcdatabase-a5ccf.appspot.com",
-            messagingSenderId: "26923536050",
-            appId: "1:26923536050:web:c9b63df0a2a548b4ec83ab",
-            measurementId: "G-BKLSES1EGM"
-        };
+    #overlay.active {
+      opacity: 1;
+    }
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-    </script>
+    #fullImage.active {
+      opacity: 1;
+    }
+
+    #downloadButton.active {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body>
-    <h1>Anonymous Discussion Page</h1>
+  <div id="gallery"></div>
 
-    <div id="discussion-container">
-        <!-- Discussion comments will be displayed here -->
-    </div>
+  <div id="overlay">
+    <img id="fullImage" src="" alt="Full-Screen View">
+    <a id="downloadButton" href="#" download>Download</a>
+  </div>
 
-    <textarea id="comment-input" placeholder="Write your comment"></textarea>
-    <button onclick="postComment()">Post Comment</button>
+  <script>
+    const gallery = document.getElementById('gallery');
+    const overlay = document.getElementById('overlay');
+    const fullImage = document.getElementById('fullImage');
+    const downloadButton = document.getElementById('downloadButton');
 
-    <script type="module">
-        const database = app.database();
-        const discussionContainer = document.getElementById('discussion-container');
-        const commentInput = document.getElementById('comment-input');
+    // Replace these URLs with your image URLs
+    const imageUrls = [
+      'image1.jpg',
+      'image2.jpg',
+      'image3.jpg',
+      // Add more image URLs as needed
+    ];
 
-        function postComment() {
-            const commentText = commentInput.value;
+    imageUrls.forEach((imageUrl, index) => {
+      const thumbnail = document.createElement('img');
+      thumbnail.src = imageUrl;
+      thumbnail.alt = `Thumbnail ${index + 1}`;
+      thumbnail.className = 'thumbnail';
+      thumbnail.addEventListener('click', () => openFullScreen(imageUrl));
+      gallery.appendChild(thumbnail);
+    });
 
-            if (commentText.trim() !== '') {
-                database.ref('comments').push({
-                    text: commentText,
-                    likes: 0,
-                    dislikes: 0
-                });
+    function openFullScreen(imageUrl) {
+      fullImage.src = imageUrl;
+      downloadButton.href = imageUrl;
+      overlay.classList.add('active');
+      fullImage.classList.add('active');
+      downloadButton.classList.add('active');
+    }
 
-                commentInput.value = '';
-            }
-        }
-
-        function displayComments() {
-            database.ref('comments').on('value', (snapshot) => {
-                discussionContainer.innerHTML = '';
-
-                snapshot.forEach((childSnapshot) => {
-                    const commentData = childSnapshot.val();
-                    const commentElement = document.createElement('div');
-                    commentElement.classList.add('comment');
-
-                    const commentText = document.createElement('p');
-                    commentText.textContent = commentData.text;
-
-                    const buttonsDiv = document.createElement('div');
-                    buttonsDiv.classList.add('comment-buttons');
-
-                    const likeButton = createButton('Like', () => handleLike(childSnapshot.key));
-                    const dislikeButton = createButton('Dislike', () => handleDislike(childSnapshot.key));
-                    const deleteButton = createButton('Delete', () => handleDelete(childSnapshot.key));
-
-                    buttonsDiv.appendChild(likeButton);
-                    buttonsDiv.appendChild(dislikeButton);
-                    buttonsDiv.appendChild(deleteButton);
-
-                    commentElement.appendChild(commentText);
-                    commentElement.appendChild(buttonsDiv);
-
-                    discussionContainer.appendChild(commentElement);
-                });
-            });
-        }
-
-        function createButton(label, onClick) {
-            const button = document.createElement('button');
-            button.textContent = label;
-            button.onclick = onClick;
-            return button;
-        }
-
-        function handleLike(commentKey) {
-            database.ref(`comments/${commentKey}/likes`).transaction((likes) => likes + 1);
-        }
-
-        function handleDislike(commentKey) {
-            database.ref(`comments/${commentKey}/dislikes`).transaction((dislikes) => dislikes + 1);
-        }
-
-        function handleDelete(commentKey) {
-            database.ref(`comments/${commentKey}`).remove();
-        }
-
-        displayComments();
-    </script>
+    overlay.addEventListener('click', () => {
+      overlay.classList.remove('active');
+      fullImage.classList.remove('active');
+      downloadButton.classList.remove('active');
+    });
+  </script>
 </body>
 </html>
